@@ -1,0 +1,80 @@
+---
+- hosts: all
+  become: true
+  vars:
+    created_username: testuser
+
+  tasks:
+    - name: Install aptitude
+      apt:
+        name: aptitude
+        state: latest
+        update_cache: true
+
+    - name: Setup passwordless sudo
+      lineinfile:
+        path: /etc/sudoers
+        state: present
+        regexp: '^%sudo'
+        line: '%sudo ALL=(ALL) NOPASSWD: ALL'
+        validate: '/usr/sbin/visudo -cf %s'
+
+    - name: Create a new regular user with sudo privileges
+      user:
+        name: "{{ created_username }}"
+        state: present
+        groups: sudo
+        append: true
+        create_home: true
+
+    - name: Set authorized key for remote user
+      ansible.posix.authorized_key:
+        user: "{{ created_username }}"
+        state: present
+        key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/do_test.pub') }}"
+
+    - name: Disable password authentication for root
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        state: present
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin prohibit-password'
+
+    - name: Update apt and install required system packages
+      apt:
+        pkg:
+          - curl
+          - vim
+          - git
+          - ufw
+          - nginx
+        state: latest
+        update_cache: true
+
+    - name: Ensure Nginx is runnning
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: UFW - Allow SSH connections
+      community.general.ufw:
+        rule: allow
+        name: OpenSSH
+
+    - name: UFW - Allow HTTP and HTTPS connections
+      community.general.ufw:
+        rule: allow
+        name: Nginx Full
+
+    - name: UFW - Enable and deny by default
+      community.general.ufw:
+        state: enabled
+        default: deny
+
+  handlers:
+    - name: Reload Nginx
+      service:
+        name: nginx
+        status: reloaded
+
