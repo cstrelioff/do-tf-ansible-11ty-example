@@ -4,3 +4,7 @@ terraform.tfplan
 terraform.tfstate
 terraform.tfstate.backup
 .terraform.lock.hcl
+
+Makefile
+Makefile.backup
+

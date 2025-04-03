@@ -1,6 +1,6 @@
 resource "digitalocean_droplet" "www" {
   image  = "ubuntu-22-04-x64"
-  name   = "www"
+  name   = "www-nginx"
   region = "nyc3"
   size   = "s-1vcpu-1gb"
   ssh_keys = [
@@ -9,8 +9,8 @@ resource "digitalocean_droplet" "www" {
 }
 
 # add domain
-resource "digitalocean_domain" "server" {
-  name       = "bennu.site"
+resource "digitalocean_domain" "default" {
+  name       = var.domain
   ip_address = digitalocean_droplet.www.ipv4_address
 }
 
